@@ -4,14 +4,17 @@ import HandTrackingModule as htm
 import time
 import pyautogui
 
-wCam, hCam = 640, 480
-frameR = 100 
-smoothening = 7
+wCam, hCam = 640, 480  # Разрешение камеры
+frameR_left = 100  # Отступ слева
+frameR_right = 100  # Отступ справа
+frameR_top = 50  # Отступ сверху
+frameR_bottom = 150  # Отступ снизу
+smoothening = 4  # Сглаживание движения
 pTime = 0
 plocX, plocY = 0, 0
 clocX, clocY = 0, 0
 
-cap = cv2.VideoCapture(0) 
+cap = cv2.VideoCapture(0)
 cap.set(3, wCam)
 cap.set(4, hCam)
 detector = htm.handDetector(maxHands=1)
@@ -23,16 +26,21 @@ while True:
     lmList, bbox = detector.findPosition(img)
     
     if len(lmList) != 0:
-        x1, y1 = lmList[8][1:]
+        # Берём середину между большим (4) и указательным (8)
+        x1 = (lmList[4][1] + lmList[8][1]) // 2
+        y1 = (lmList[4][2] + lmList[8][2]) // 2
+
         x2, y2 = lmList[12][1:]
         
         fingers = detector.fingersUp()
-        cv2.rectangle(img, (frameR, frameR), (wCam - frameR, hCam - frameR),
+        # Рисуем прямоугольник с индивидуальными отступами
+        cv2.rectangle(img, (frameR_left, frameR_top), (wCam - frameR_right, hCam - frameR_bottom),
                       (255, 0, 255), 2)
 
+        # Движение мышки
         if fingers[1] == 1 and fingers[2] == 0:
-            x3 = np.interp(x1, (frameR, wCam - frameR), (0, wScr))
-            y3 = np.interp(y1, (frameR, hCam - frameR), (0, hScr))
+            x3 = np.interp(x1, (frameR_left, wCam - frameR_right), (0, wScr))
+            y3 = np.interp(y1, (frameR_top, hCam - frameR_bottom), (0, hScr))
 
             clocX = plocX + (x3 - plocX) / smoothening
             clocY = plocY + (y3 - plocY) / smoothening
@@ -41,14 +49,16 @@ while True:
             cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
             plocX, plocY = clocX, clocY
 
-        if fingers[1] == 1 and fingers[2] == 1:
-            length, img, lineInfo = detector.findDistance(8, 12, img)
+        # Клик мышки
+        if fingers[1] == 1 and fingers[0] == 1:  # указательный и большой подняты
+            length, img, lineInfo = detector.findDistance(4, 8, img)
 
             if length < 40:
                 cv2.circle(img, (lineInfo[4], lineInfo[5]),
                            15, (0, 255, 0), cv2.FILLED)
-                pyautogui.click()  
+                pyautogui.click()
 
+    # Отображение FPS
     cTime = time.time()
     fps = 1 / (cTime - pTime) if (cTime - pTime) > 0 else 0
     pTime = cTime
