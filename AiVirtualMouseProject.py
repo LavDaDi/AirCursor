@@ -34,27 +34,20 @@ while True:
         x1 = (lmList[4][1] + lmList[8][1]) // 2
         y1 = (lmList[4][2] + lmList[8][2]) // 2
 
-        fingers = detector.fingersUp()
+        # движение курсора всегда активно
+        x3 = np.interp(x1, (frameR_left, wCam - frameR_right), (0, wScr))
+        y3 = np.interp(y1, (frameR_top, hCam - frameR_bottom), (0, hScr))
 
-        # Рисуем прямоугольник с индивидуальными отступами
-        cv2.rectangle(img, (frameR_left, frameR_top), (wCam - frameR_right, hCam - frameR_bottom),
-                      (255, 0, 255), 2)
+        clocX = plocX + (x3 - plocX) / smoothening
+        clocY = plocY + (y3 - plocY) / smoothening
 
-        # Движение мышки — указательный палец поднят, средний опущен
-        if fingers[1] == 1 and fingers[2] == 0:
-            x3 = np.interp(x1, (frameR_left, wCam - frameR_right), (0, wScr))
-            y3 = np.interp(y1, (frameR_top, hCam - frameR_bottom), (0, hScr))
-
-            clocX = plocX + (x3 - plocX) / smoothening
-            clocY = plocY + (y3 - plocY) / smoothening
-
-            pyautogui.moveTo(wScr - clocX, clocY)
-            cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
-            plocX, plocY = clocX, clocY
+        pyautogui.moveTo(wScr - clocX, clocY)
+        cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
+        plocX, plocY = clocX, clocY
 
         # === ЛЕВАЯ КНОПКА (большой + указательный) ===
         length_left, img, _ = detector.findDistance(4, 8, img, draw=False)
-        if length_left < 40 and not left_down:
+        if length_left < 40 and not left_down and not right_down:
             pyautogui.mouseDown(button='left')
             left_down = True
         elif length_left >= 40 and left_down:
@@ -63,10 +56,10 @@ while True:
 
         # === ПРАВАЯ КНОПКА (большой + средний) ===
         length_right, img, _ = detector.findDistance(4, 12, img, draw=False)
-        if length_right < 20 and not right_down:
+        if length_right < 40 and not right_down and not left_down:
             pyautogui.mouseDown(button='right')
             right_down = True
-        elif length_right >= 20 and right_down:
+        elif length_right >= 40 and right_down:
             pyautogui.mouseUp(button='right')
             right_down = False
 
