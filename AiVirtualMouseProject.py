@@ -46,7 +46,7 @@ while True:
         plocX, plocY = clocX, clocY
 
         # === ЛЕВАЯ КНОПКА (большой + указательный) ===
-        length_left, img, _ = detector.findDistance(4, 8, img, draw=False)
+        length_left, img, lineInfoL = detector.findDistance(4, 8, img)
         if length_left < 40 and not left_down and not right_down:
             pyautogui.mouseDown(button='left')
             left_down = True
@@ -55,13 +55,19 @@ while True:
             left_down = False
 
         # === ПРАВАЯ КНОПКА (большой + средний) ===
-        length_right, img, _ = detector.findDistance(4, 12, img, draw=False)
-        if length_right < 40 and not right_down and not left_down:
+        length_right, img, lineInfoR = detector.findDistance(4, 12, img)
+        if length_right < 20 and not right_down and not left_down:
             pyautogui.mouseDown(button='right')
             right_down = True
-        elif length_right >= 40 and right_down:
+        elif length_right >= 20 and right_down:
             pyautogui.mouseUp(button='right')
             right_down = False
+
+        # --- Визуальные индикаторы ---
+        if left_down:
+            cv2.circle(img, (lineInfoL[4], lineInfoL[5]), 15, (255, 0, 0), cv2.FILLED)  # 🔵 левый клик
+        if right_down:
+            cv2.circle(img, (lineInfoR[4], lineInfoR[5]), 15, (0, 0, 255), cv2.FILLED)  # 🔴 правый клик
 
     # Отображение FPS
     cTime = time.time()
