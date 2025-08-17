@@ -20,7 +20,9 @@ cap.set(4, hCam)
 detector = htm.handDetector(maxHands=1)
 wScr, hScr = pyautogui.size()
 
-mouse_down = False  # состояние ЛКМ
+# состояния кнопок
+left_down = False
+right_down = False
 
 while True:
     success, img = cap.read()
@@ -28,16 +30,17 @@ while True:
     lmList, bbox = detector.findPosition(img)
     
     if len(lmList) != 0:
-        # Берём середину между большим (4) и указательным (8)
+        # Берём середину между большим (4) и указательным (8) для курсора
         x1 = (lmList[4][1] + lmList[8][1]) // 2
         y1 = (lmList[4][2] + lmList[8][2]) // 2
 
         fingers = detector.fingersUp()
+
         # Рисуем прямоугольник с индивидуальными отступами
         cv2.rectangle(img, (frameR_left, frameR_top), (wCam - frameR_right, hCam - frameR_bottom),
                       (255, 0, 255), 2)
 
-        # Движение мышки
+        # Движение мышки — указательный палец поднят, средний опущен
         if fingers[1] == 1 and fingers[2] == 0:
             x3 = np.interp(x1, (frameR_left, wCam - frameR_right), (0, wScr))
             y3 = np.interp(y1, (frameR_top, hCam - frameR_bottom), (0, hScr))
@@ -49,18 +52,23 @@ while True:
             cv2.circle(img, (x1, y1), 15, (255, 0, 255), cv2.FILLED)
             plocX, plocY = clocX, clocY
 
-        # Управление ЛКМ
-        length, img, lineInfo = detector.findDistance(4, 8, img)
-        if length < 40:  # пальцы сомкнуты
-            if not mouse_down:  # если кнопка ещё не нажата
-                pyautogui.mouseDown()
-                mouse_down = True
-                cv2.circle(img, (lineInfo[4], lineInfo[5]),
-                           15, (0, 255, 0), cv2.FILLED)
-        else:
-            if mouse_down:  # если кнопка была нажата — отжать
-                pyautogui.mouseUp()
-                mouse_down = False
+        # === ЛЕВАЯ КНОПКА (большой + указательный) ===
+        length_left, img, _ = detector.findDistance(4, 8, img, draw=False)
+        if length_left < 40 and not left_down:
+            pyautogui.mouseDown(button='left')
+            left_down = True
+        elif length_left >= 40 and left_down:
+            pyautogui.mouseUp(button='left')
+            left_down = False
+
+        # === ПРАВАЯ КНОПКА (большой + средний) ===
+        length_right, img, _ = detector.findDistance(4, 12, img, draw=False)
+        if length_right < 20 and not right_down:
+            pyautogui.mouseDown(button='right')
+            right_down = True
+        elif length_right >= 20 and right_down:
+            pyautogui.mouseUp(button='right')
+            right_down = False
 
     # Отображение FPS
     cTime = time.time()
